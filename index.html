@@ -1,0 +1,280 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>MAIL-Bench and MINT</title>
+<meta name="description" content="Learning to Act under Visual Interruptions with Vision-Language-Action Models: MAIL-Bench, a closed-loop benchmark for camera loss, and MINT, a training and inference recipe that keeps VLA policies acting when cameras stop delivering frames.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Source+Serif+4:opsz,wght@8..60,500;8..60,600&family=Source+Sans+3:wght@400;600;700&family=JetBrains+Mono:wght@400&display=swap">
+<style>
+:root{
+  --bg:#ffffff; --bg-soft:#f6f5f2; --ink:#1d1d1b; --ink-2:#4d4c48; --ink-3:#7b7a75; --rule:#e2e0da;
+  --accent:#c0392b; --accent-soft:#fbe9e6; --flow:#2a9d4f; --world:#2f6db3; --world-soft:#e1ebf7; --link:#2f6db3;
+  --best:#f6d9d5; --table-head:#f1efea;
+  --serif:"Source Serif 4",Georgia,"Times New Roman",serif; --sans:"Source Sans 3","Helvetica Neue",Arial,sans-serif; --mono:"JetBrains Mono",Menlo,Consolas,monospace;
+  color-scheme:light;
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --bg:#15161a; --bg-soft:#1e2026; --ink:#ececea; --ink-2:#c3c2bd; --ink-3:#8f8e89; --rule:#2f313a;
+    --accent:#e4685a; --accent-soft:#3a2320; --flow:#4fbf74; --world:#6ea3e0; --world-soft:#1f2c3d; --link:#7fb0e6;
+    --best:#4a2a27; --table-head:#23252c; color-scheme:dark;
+  }
+}
+:root[data-theme="dark"]{
+  --bg:#15161a; --bg-soft:#1e2026; --ink:#ececea; --ink-2:#c3c2bd; --ink-3:#8f8e89; --rule:#2f313a;
+  --accent:#e4685a; --accent-soft:#3a2320; --flow:#4fbf74; --world:#6ea3e0; --world-soft:#1f2c3d; --link:#7fb0e6;
+  --best:#4a2a27; --table-head:#23252c; color-scheme:dark;
+}
+*{box-sizing:border-box}
+html,body{margin:0}
+body{background:var(--bg);color:var(--ink);font-family:var(--sans);font-size:17px;line-height:1.55;padding-block:0 48px;padding-inline:16px}
+a{color:var(--link);text-decoration:none}
+a:hover{text-decoration:underline}
+a:focus-visible,button:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+img{max-width:100%;height:auto;display:block}
+.wrap{max-width:960px;margin:0 auto}
+nav.top{position:sticky;top:env(safe-area-inset-top,0px);z-index:5;background:var(--bg);border-bottom:1px solid var(--rule);margin:0 -16px;padding:10px 16px}
+nav.top ul{list-style:none;margin:0 auto;padding:0;max-width:960px;display:flex;flex-wrap:wrap;gap:6px 22px;font-size:15px;font-weight:600;letter-spacing:.01em}
+nav.top a{color:var(--ink-2)}
+header.hero{text-align:center;padding-block:44px 8px}
+header.hero h1{font-family:var(--serif);font-weight:600;font-size:clamp(28px,4.2vw,42px);line-height:1.18;margin:0 0 18px;text-wrap:balance}
+.authors{font-size:19px;margin:0 0 6px;color:var(--ink)}
+.authors span{white-space:nowrap}
+.affil{color:var(--ink-2);margin:0 0 6px;font-size:16px}
+.venue{color:var(--ink-3);font-size:15px;margin:0 0 22px}
+.buttons{display:flex;flex-wrap:wrap;justify-content:center;gap:10px;margin:0 0 30px}
+.btn{display:inline-flex;align-items:center;gap:8px;padding:9px 18px;border-radius:999px;background:var(--ink);color:var(--bg);font-weight:600;font-size:15px;border:1px solid var(--ink)}
+.btn:hover{text-decoration:none;opacity:.88}
+.btn.ghost{background:transparent;color:var(--ink);border-color:var(--rule)}
+.btn svg{width:16px;height:16px;fill:currentColor}
+figure{margin:0}
+.videos{display:grid;gap:18px;margin:0 0 34px}
+.videos figure{background:var(--bg-soft);border-radius:10px;padding:10px 10px 8px}
+.videos video{width:100%;height:auto;display:block;border-radius:6px;background:#fff}
+.videos figcaption{text-align:left;font-size:15px;margin-top:8px}
+figure.teaser img{border:1px solid var(--rule);border-radius:6px;background:#fff}
+figcaption{font-size:15px;color:var(--ink-2);margin-top:10px;line-height:1.5}
+figcaption b{color:var(--ink)}
+.tldr{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:12px;margin:34px 0 0}
+.tldr div{background:var(--bg-soft);border-radius:8px;padding:14px 16px}
+.tldr .n{font-family:var(--serif);font-size:30px;font-weight:600;line-height:1.1;color:var(--accent);font-variant-numeric:tabular-nums}
+.tldr .l{font-size:14px;color:var(--ink-2);margin-top:4px}
+section{padding-block:40px 0;scroll-margin-top:64px}
+section h2{font-family:var(--serif);font-weight:600;font-size:28px;margin:0 0 14px;line-height:1.2}
+section h3{font-size:18px;margin:26px 0 8px;font-weight:700}
+section p{margin:0 0 14px;max-width:72ch}
+.abstract p{max-width:none;font-size:17.5px}
+.lead{color:var(--ink-2)}
+.two{display:grid;grid-template-columns:1fr 1fr;gap:20px 28px;align-items:start}
+@media (max-width:720px){.two{grid-template-columns:1fr}}
+ul.plain{padding-left:20px;margin:0 0 14px}
+ul.plain li{margin-bottom:6px}
+.tag{display:inline-block;font-size:12.5px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;padding:2px 8px;border-radius:4px;background:var(--accent-soft);color:var(--accent);margin-right:6px;vertical-align:middle}
+.tag.world{background:var(--world-soft);color:var(--world)}
+.tag.flow{background:transparent;color:var(--flow);border:1px solid var(--flow)}
+.tablewrap{overflow-x:auto;border:1px solid var(--rule);border-radius:8px;margin:14px 0 8px}
+table{border-collapse:collapse;width:100%;font-size:14px;font-variant-numeric:tabular-nums;min-width:760px}
+th,td{padding:7px 9px;text-align:center;border-bottom:1px solid var(--rule);white-space:nowrap}
+th{background:var(--table-head);font-weight:700}
+td:first-child,th:first-child,td:nth-child(2),th:nth-child(2){text-align:left}
+tr.group td{background:var(--bg-soft);font-style:italic;text-align:left;font-weight:600}
+tr.mint td{background:var(--accent-soft)}
+td.best{font-weight:700}
+td.delta{color:var(--accent);font-weight:700}
+.note{font-size:14px;color:var(--ink-3);margin:0 0 6px}
+.episodes{display:grid;grid-template-columns:1fr 1fr;gap:14px 18px;margin-top:10px}
+@media (max-width:720px){.episodes{grid-template-columns:1fr}}
+.episodes figure{background:var(--bg-soft);border-radius:8px;padding:10px}
+.episodes figcaption{margin-top:6px;font-size:14px}
+pre{background:var(--bg-soft);border:1px solid var(--rule);border-radius:8px;padding:14px 16px;overflow-x:auto;font-family:var(--mono);font-size:13.5px;line-height:1.5;margin:0}
+footer{margin-top:56px;padding-top:18px;border-top:1px solid var(--rule);font-size:14px;color:var(--ink-3)}
+footer p{margin:0 0 6px}
+@media (prefers-reduced-motion:no-preference){html{scroll-behavior:smooth}}
+</style>
+</head>
+<body>
+<nav class="top" aria-label="Sections">
+<ul>
+<li><a href="#abstract">Abstract</a></li>
+<li><a href="#benchmark">MAIL-Bench</a></li>
+<li><a href="#method">MINT</a></li>
+<li><a href="#results">Results</a></li>
+<li><a href="#realrobot">Real robot</a></li>
+<li><a href="#bibtex">BibTeX</a></li>
+</ul>
+</nav>
+
+<div class="wrap">
+<header class="hero">
+<h1>Learning to Act under Visual Interruptions with Vision-Language-Action Models</h1>
+<p class="authors"><span>Mingle Jiang</span>, <span>Rui Xu</span>, <span>Yunke Wang</span>, <span>Chang Xu</span></p>
+<p class="affil">School of Computer Science, The University of Sydney</p>
+<div class="buttons">
+<a class="btn" href="#" id="link-paper"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 2h9l5 5v15H6zm8 1.5V8h4.5zM8 12h8v1.5H8zm0 3h8v1.5H8zm0 3h5v1.5H8z"/></svg>Paper (arXiv)</a>
+</div>
+<div class="videos">
+<figure>
+<video src="static/video/g2_drawer_head_interrupted.mp4" poster="static/video/g2_drawer_head_interrupted.jpg" autoplay muted loop playsinline controls preload="metadata" aria-label="AgiBot G2 drawer episode with the head camera interrupted at 6.2 seconds"></video>
+<figcaption><b>Head camera interrupted, real time.</b> Left: the real head camera, hidden from the policy after 6.2&nbsp;s. Middle: the head view as the policy receives it: real frames until the interruption, then the world-model prediction MINT supplies at each policy query (blue), and no frame where none is accepted. Right: the wrist camera, which stays available. GR00T&nbsp;N1.5 + MINT completes the task: cube into the drawer, drawer closed.</figcaption>
+</figure>
+</div>
+<figure class="teaser">
+<img src="static/mail_intro.png" alt="MAIL-Bench: four availability conditions on RoboCasa365 and the number of scenes solved by pi0.5 and GR00T N1.5 with every camera present and after one visual role is lost at 30, 45 or 60 percent of completion time, with and without MINT" width="1650" height="620">
+<figcaption><b>MAIL-Bench.</b> (a) Four availability conditions on RoboCasa365; an interrupted camera delivers no frame and its availability flag is 0. (b) Scenes solved out of 900 with every camera present (healthy) and after one visual role is lost at 30, 45 or 60% of each policy's own completion time. Camera loss removes a large share of both base policies' successes, and MINT recovers part of that loss on every role.</figcaption>
+</figure>
+</header>
+
+<section id="abstract" class="abstract">
+<h2>Abstract</h2>
+<p>Vision-language-action (VLA) models have demonstrated strong capabilities in robotic manipulation, but they are typically developed and evaluated with all camera streams available throughout task execution. When a camera stops delivering frames during task execution, the policy must continue acting without access to subsequent observations from the missing view. Despite its practical importance, how such interruptions affect closed-loop manipulation remains insufficiently understood. To investigate this problem, we introduce <b>MAIL-Bench</b>, a benchmark that evaluates visual interruptions with VLA models. By interrupting different cameras at multiple stages of each policy's successful reference trajectory, MAIL-Bench measures how well policies retain their capabilities when visual inputs become unavailable. Building on this benchmark, we propose <b>MINT</b>, which trains VLA policies to handle missing visual inputs and temporarily supplies predicted images when cameras fail. It uses optical-flow extrapolation for missing wrist views or all-vision loss, and an action-conditioned world model for missing third-person views, withdrawing the predictions when they become unreliable. Experiments on &pi;<sub>0.5</sub> and GR00T&nbsp;N1.5 show that MINT improves task success under camera loss over the original models. Experiments on the AgiBot&nbsp;G2 further demonstrate real-robot closed-loop deployment under camera loss.</p>
+</section>
+
+<section id="benchmark">
+<h2>MAIL-Bench: manipulation under visual interruption</h2>
+<p class="lead">A paired, closed-loop benchmark for evaluating VLA models with missing camera inputs, built on RoboCasa365. Each policy is measured against its own successful rollouts, so the score isolates what camera loss takes away.</p>
+<figure>
+<img src="static/mail_construction.png" alt="Benchmark construction: a healthy rollout defines the reference completion time, then the same scene is replayed with the selected visual role interrupted at 30, 45 or 60 percent of that time and kept unavailable" width="1650" height="520">
+<figcaption>A successful healthy rollout defines the reference completion time <i>T</i><sub>healthy</sub>. The same scene is then replayed with the selected visual role interrupted at 30%, 45% or 60% of <i>T</i><sub>healthy</sub> and kept unavailable thereafter, while unaffected cameras continue streaming. Shown is an AgiBot&nbsp;G2 drawer example.</figcaption>
+</figure>
+<div class="two" style="margin-top:22px">
+<div>
+<h3>Protocol</h3>
+<ul class="plain">
+<li><b>Environment.</b> The 18 RoboCasa365 Atomic-Seen tasks with 50 fixed scenes each: 900 evaluation scenes.</li>
+<li><b>Visual roles, not devices.</b> The wrist camera forms the <i>wrist</i> group; the base-mounted cameras form the <i>third-person</i> group. Conditions: healthy, wrist missing, third-person missing, all vision missing.</li>
+<li><b>Hard missing.</b> Once interrupted, a camera group provides no further frames and its availability flag is set to 0. No black frames, no frozen images.</li>
+<li><b>Onset relative to the policy.</b> Interruptions start at 30%, 45% and 60% of each policy's own healthy completion time, so fast and slow policies are compared at the same task stage.</li>
+<li><b>Paired and deterministic.</b> Every interruption rollout restarts from the healthy rollout's saved initial state and policy seed; the pre-interruption trajectory is checked to match the reference.</li>
+</ul>
+</div>
+<div>
+<h3>What it measures</h3>
+<p>For task <i>j</i>, <i>H<sub>j</sub></i> is the healthy success rate over its 50 scenes and <i>M<sub>c,j</sub></i> the fraction of those healthy successes that survive interruption condition <i>c</i>. The task score averages <i>H<sub>j</sub></i> with the nine conditional scores, and the MAIL-Bench score averages the 18 task scores. A policy is therefore rewarded both for solving tasks and for keeping what it can already do when a camera disappears.</p>
+<h3>How it differs from robustness benchmarks</h3>
+<div class="tablewrap" style="margin-top:6px">
+<table style="min-width:520px">
+<thead><tr><th>Benchmark</th><th>Visual failure</th><th>Onset</th><th>Post-loss control</th></tr></thead>
+<tbody>
+<tr><td>COLOSSEUM</td><td>Perturbation</td><td>&ndash;</td><td>&ndash;</td></tr>
+<tr><td>RoboTwin 2.0</td><td>Perturbation</td><td>&ndash;</td><td>&ndash;</td></tr>
+<tr><td>VLATest</td><td>Perturbation</td><td>&ndash;</td><td>&ndash;</td></tr>
+<tr><td>LIBERO-Plus</td><td>Black frame</td><td>Start</td><td>Closed loop</td></tr>
+<tr><td>Missing-modality IL</td><td>Camera dropout</td><td>Start</td><td>Open loop</td></tr>
+<tr class="mint"><td><b>MAIL-Bench (ours)</b></td><td><b>Camera loss</b></td><td><b>Mid-episode</b></td><td><b>Closed loop</b></td></tr>
+</tbody>
+</table>
+</div>
+</div>
+</div>
+</section>
+
+<section id="method">
+<h2>MINT: acting under visual interruption</h2>
+<p class="lead">MINT separates robustness to missing visual inputs from visual prediction. The policy is first trained to act under variable camera availability, then selectively receives predicted views at inference time when a camera is interrupted.</p>
+<figure>
+<img src="static/method.png" alt="MINT overview: availability-aware training, then at inference optical-flow extrapolation for missing wrist views or all-vision loss and an action-conditioned world model for missing third-person views, with reliability-gated fallback" width="1650" height="700">
+<figcaption><b>MINT overview.</b> Unreliable predictions are withdrawn, and the policy falls back to acting from the observations that remain.</figcaption>
+</figure>
+<div class="two" style="margin-top:22px">
+<div>
+<h3><span class="tag">Train</span>Learning with missing visual inputs</h3>
+<p>During fine-tuning, camera groups are dropped as hard missing: their tokens are excluded and the availability flag is set to 0. The policy learns to act from whatever views remain, and healthy performance does not degrade; on GR00T&nbsp;N1.5 it improves on two of the three task categories.</p>
+</div>
+<div>
+<h3><span class="tag flow">Flow</span><span class="tag world">World</span>Predicting missing visual inputs</h3>
+<p>When the wrist view or all vision is lost, short-horizon optical-flow extrapolation of the last frames fills the gap on the CPU. When the third-person view is lost, an action-conditioned world model generates it from the surviving wrist stream and the executed actions.</p>
+</div>
+<div>
+<h3><span class="tag">Gate</span>Reliability-gated fallback</h3>
+<p>Each prediction is checked against the views that remain; once a route becomes unreliable, its images are withdrawn and the policy returns to acting under hard missing, which the training stage prepared it for. Predictions are supplied temporarily, never trusted indefinitely.</p>
+</div>
+<div>
+<h3>Cost</h3>
+<p>MINT does not increase the per-step wall-clock time of healthy execution. Under interruption the optical-flow route runs on the CPU, and the world model adds 9.2&nbsp;GiB of GPU memory and about 100&nbsp;TFLOPs per generation, invoked only while a third-person view is missing.</p>
+</div>
+</div>
+</section>
+
+<section id="results">
+<h2>Results on MAIL-Bench</h2>
+<p class="lead">Healthy is the success rate with all cameras available. W, T and B report the scores under wrist, third-person and all-vision interruption at 30 / 45 / 60% of completion time. AVG is the task-category MAIL-Bench score and &Delta; its change over the corresponding base checkpoint. Bold marks the best result within each backbone and task category.</p>
+<div class="tablewrap">
+<table>
+<thead>
+<tr><th rowspan="2">Method</th><th rowspan="2">Tasks</th><th rowspan="2">Healthy</th><th colspan="3">Wrist missing</th><th colspan="3">Third-person missing</th><th colspan="3">All vision missing</th><th rowspan="2">AVG</th><th rowspan="2">&Delta;</th></tr>
+<tr><th>W30</th><th>W45</th><th>W60</th><th>T30</th><th>T45</th><th>T60</th><th>B30</th><th>B45</th><th>B60</th></tr>
+</thead>
+<tbody>
+<tr class="group"><td colspan="14">GR00T N1.5</td></tr>
+<tr><td>base model</td><td>pick-and-place</td><td class="best">0.732</td><td>0.163</td><td>0.276</td><td>0.341</td><td>0.165</td><td>0.224</td><td>0.424</td><td>0.000</td><td>0.000</td><td>0.010</td><td>0.234</td><td>&ndash;</td></tr>
+<tr><td></td><td>small appliances</td><td>0.290</td><td>0.153</td><td>0.277</td><td>0.398</td><td>0.245</td><td>0.296</td><td>0.403</td><td>0.110</td><td>0.170</td><td>0.226</td><td>0.257</td><td>&ndash;</td></tr>
+<tr><td></td><td>fixtures &amp; navigation</td><td>0.386</td><td>0.178</td><td>0.253</td><td>0.385</td><td>0.308</td><td>0.319</td><td>0.398</td><td>0.029</td><td>0.084</td><td>0.119</td><td>0.246</td><td>&ndash;</td></tr>
+<tr class="mint"><td><b>+ MINT</b></td><td>pick-and-place</td><td>0.724</td><td class="best">0.423</td><td class="best">0.561</td><td class="best">0.673</td><td class="best">0.622</td><td class="best">0.674</td><td class="best">0.647</td><td class="best">0.053</td><td class="best">0.091</td><td class="best">0.166</td><td class="best">0.463</td><td class="delta">+0.229</td></tr>
+<tr class="mint"><td></td><td>small appliances</td><td class="best">0.450</td><td class="best">0.493</td><td class="best">0.536</td><td class="best">0.631</td><td class="best">0.602</td><td class="best">0.628</td><td class="best">0.573</td><td class="best">0.307</td><td class="best">0.419</td><td class="best">0.528</td><td class="best">0.517</td><td class="delta">+0.260</td></tr>
+<tr class="mint"><td></td><td>fixtures &amp; navigation</td><td class="best">0.497</td><td class="best">0.450</td><td class="best">0.507</td><td class="best">0.649</td><td class="best">0.335</td><td class="best">0.488</td><td class="best">0.566</td><td class="best">0.076</td><td class="best">0.197</td><td class="best">0.378</td><td class="best">0.414</td><td class="delta">+0.168</td></tr>
+<tr class="group"><td colspan="14">&pi;<sub>0.5</sub></td></tr>
+<tr><td>base model</td><td>pick-and-place</td><td>0.636</td><td class="best">0.059</td><td>0.098</td><td>0.200</td><td>0.239</td><td>0.245</td><td>0.375</td><td>0.000</td><td>0.014</td><td>0.089</td><td>0.196</td><td>&ndash;</td></tr>
+<tr><td></td><td>small appliances</td><td>0.257</td><td>0.270</td><td>0.264</td><td>0.342</td><td>0.291</td><td>0.343</td><td>0.413</td><td>0.065</td><td>0.095</td><td>0.156</td><td>0.250</td><td>&ndash;</td></tr>
+<tr><td></td><td>fixtures &amp; navigation</td><td>0.360</td><td class="best">0.151</td><td class="best">0.266</td><td>0.355</td><td class="best">0.453</td><td>0.469</td><td class="best">0.602</td><td>0.043</td><td class="best">0.129</td><td>0.254</td><td>0.308</td><td>&ndash;</td></tr>
+<tr class="mint"><td><b>+ MINT</b></td><td>pick-and-place</td><td class="best">0.688</td><td>0.027</td><td class="best">0.111</td><td class="best">0.342</td><td class="best">0.574</td><td class="best">0.735</td><td class="best">0.713</td><td class="best">0.025</td><td class="best">0.090</td><td class="best">0.196</td><td class="best">0.350</td><td class="delta">+0.154</td></tr>
+<tr class="mint"><td></td><td>small appliances</td><td class="best">0.333</td><td class="best">0.291</td><td class="best">0.426</td><td class="best">0.350</td><td class="best">0.513</td><td class="best">0.372</td><td class="best">0.480</td><td class="best">0.218</td><td class="best">0.337</td><td class="best">0.370</td><td class="best">0.369</td><td class="delta">+0.119</td></tr>
+<tr class="mint"><td></td><td>fixtures &amp; navigation</td><td class="best">0.414</td><td>0.131</td><td>0.261</td><td class="best">0.528</td><td>0.428</td><td class="best">0.498</td><td>0.546</td><td class="best">0.093</td><td>0.128</td><td class="best">0.278</td><td class="best">0.331</td><td class="delta">+0.023</td></tr>
+</tbody>
+</table>
+</div>
+<p class="note">Per-task, per-condition results and bootstrap intervals are in the paper's appendix.</p>
+<div class="two" style="margin-top:18px">
+<div>
+<h3>What the numbers say</h3>
+<ul class="plain">
+<li>Availability-aware training alone lifts healthy success on GR00T&nbsp;N1.5 (small appliances 0.290 &rarr; 0.450): learning under partial observation does not trade off normal execution.</li>
+<li>Under interruption MINT outperforms both base models in almost all of the nine conditions, across wrist, third-person and all-vision loss and across early and late onsets.</li>
+<li>Third-person loss benefits most from prediction, because the global view can still be inferred from the wrist camera; all-vision loss is the hardest condition for every policy.</li>
+</ul>
+</div>
+<figure>
+<img src="static/ablation_groot.png" alt="Ablation on GR00T N1.5: MAIL-Bench scores at each onset for the base model, missing-view training only, prediction only, and full MINT" width="1000" height="620">
+<figcaption><b>Ablation on GR00T&nbsp;N1.5.</b> Scores averaged over the three task categories at each onset; H marks the healthy-input score of each variant. Missing-view training governs how far the policy falls when a view is lost early; prediction determines how much of a lost view can be recovered while another view remains (+0.105 at T30).</figcaption>
+</figure>
+</div>
+</section>
+
+<section id="realrobot">
+<h2>Real robot: AgiBot G2</h2>
+<p class="lead">The same observation interface transfers to a physical robot without changing the VLA architecture. An availability-aware GR00T&nbsp;N1.5 policy is fine-tuned on 203 successful teleoperated episodes of four tabletop tasks; the G2 head camera provides the third-person view and the right wrist camera the wrist view.</p>
+<figure>
+<img src="static/g2_bars_agg.png" alt="Success rate of GR00T N1.5 with and without MINT on the AgiBot G2 under healthy execution and under sustained third-person, wrist and all-camera interruption, 10 trials per task and condition" width="1650" height="520">
+<figcaption><b>Real robot experiment on the AgiBot&nbsp;G2.</b> Success rate of GR00T&nbsp;N1.5 and MINT over 10 trials per task and condition; numbers above the bars are successful trials.</figcaption>
+</figure>
+<figure style="margin-top:26px">
+<img src="static/g2_drawer_world_lane.png" alt="A cube-to-drawer episode on the AgiBot G2 with the third-person camera interrupted at step 50: real third-person stream hidden from the policy, the world-model prediction that replaces it, and the wrist stream that stays available" width="1650" height="620">
+<figcaption>Episode on the cube-to-drawer task with the third-person camera interrupted at step 50. <b>Top:</b> real third-person stream, hidden from the policy after interruption. <b>Middle:</b> the third-person stream and its world-model prediction. <b>Bottom:</b> the wrist stream, which stays available. The policy completes grasping, transport, release and drawer closure.</figcaption>
+</figure>
+<h3>The four tasks</h3>
+<p class="note">Healthy episodes; head (third-person) camera on top and right wrist camera below, at five time points.</p>
+<div class="episodes">
+<figure><img src="static/g2_drawer_episode.png" alt="Healthy drawer episode" width="1104" height="354"><figcaption>(a) Drawer</figcaption></figure>
+<figure><img src="static/g2_bowl_episode.png" alt="Healthy cube-into-bowl episode" width="1104" height="354"><figcaption>(b) Cube into bowl</figcaption></figure>
+<figure><img src="static/g2_cup_episode.png" alt="Healthy cup-onto-plate episode" width="1104" height="354"><figcaption>(c) Cup onto plate</figcaption></figure>
+<figure><img src="static/g2_stack_episode.png" alt="Healthy stack-cups episode" width="1104" height="354"><figcaption>(d) Stack cups</figcaption></figure>
+</div>
+</section>
+
+<section id="bibtex">
+<h2>BibTeX</h2>
+<pre id="bib">@article{jiang2026mint,
+  title   = {Learning to Act under Visual Interruptions with Vision-Language-Action Models},
+  author  = {Jiang, Mingle and Xu, Rui and Wang, Yunke and Xu, Chang},
+  journal = {arXiv preprint},
+  year    = {2026}
+}</pre>
+</section>
+
+<footer>
+<p>School of Computer Science, The University of Sydney. Page content is licensed under <a href="https://creativecommons.org/licenses/by-sa/4.0/">CC BY-SA 4.0</a>.</p>
+</footer>
+</div>
+</body>
+</html>
